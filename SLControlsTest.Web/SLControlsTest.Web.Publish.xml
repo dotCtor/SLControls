@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<publishData>
+  <publishProfile publishUrl="C:\Users\ibrahim.kalyoncu\Desktop\www.ibrahimkalyoncu.com\Demo\SLControls" deleteExistingFiles="False" ftpAnonymousLogin="False" ftpPassiveMode="True" msdeploySite="" msdeploySiteID="" msdeployRemoteSitePhysicalPath="" msdeployAllowUntrustedCertificate="False" msdeploySkipExtraFilesOnServer="True" msdeployMarkAsApp="False" profileName="Profile1" publishMethod="FileSystem" replaceMatchingFiles="True" userName="" savePWD="False" userPWD="" SelectedForPublish="True">
+    <file relUrl="ClientBin/SLControlsTest.xap" publishTime="05/06/2012 21:04:24" />
+    <file relUrl="SLControlsTestTestPage.aspx" publishTime="03/12/2012 22:15:06" />
+    <file relUrl="Web.config" publishTime="05/06/2012 21:08:18" />
+    <file relUrl="Silverlight.js" publishTime="03/12/2012 22:15:06" />
+    <file relUrl="bin/SLControlsTest.Web.dll" publishTime="05/06/2012 21:04:20" />
+    <file relUrl="SLControlsTestTestPage.html" publishTime="03/12/2012 22:15:06" />
+    <file relUrl="bin/SLControlsTest.Web.pdb" publishTime="05/06/2012 21:04:20" />
+  </publishProfile>
+</publishData>
