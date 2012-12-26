@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLControls", "SLControls\SLControls.csproj", "{CC0B61E5-01FF-41A6-8A90-AB8F0FA8F191}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLControlsTest.Silverlight", "SLControlsTest\SLControlsTest.Silverlight.csproj", "{F926A798-6A2F-4BC2-94F5-57375BA8052F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLControlsTest.Silverlight", "Test\SLControlsTest\SLControlsTest.Silverlight.csproj", "{F926A798-6A2F-4BC2-94F5-57375BA8052F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLControlsTest.Web", "SLControlsTest.Web\SLControlsTest.Web.csproj", "{6C849BFE-3C3B-4128-8339-0EB71B6DE7BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLControlsTest.Web", "Test\SLControlsTest.Web\SLControlsTest.Web.csproj", "{6C849BFE-3C3B-4128-8339-0EB71B6DE7BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

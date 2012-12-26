@@ -99,7 +99,7 @@
     <None Include="Properties\AppManifest.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SLControls\SLControls.csproj">
+    <ProjectReference Include="..\..\SLControls\SLControls.csproj">
       <Project>{CC0B61E5-01FF-41A6-8A90-AB8F0FA8F191}</Project>
       <Name>SLControls</Name>
     </ProjectReference>
