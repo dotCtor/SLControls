@@ -14,35 +14,6 @@ using System.Threading;
 
 namespace SLControls
 {
-    public enum SLMessageWindowResult
-    {
-        None,
-        OK,
-        Cancel,
-        Yes,
-        No,
-        Abort,
-        Retry,
-        Ignore
-    }
-
-    public enum SLMessageWindowButton
-    {
-        OK,
-        OKCancel,
-        AbortRetryIgnore,
-        YesNoCancel,
-        YesNo,
-        RetryCancel
-    }
-
-    public enum SLMessageWindowType
-    {
-        Information,
-        Error,
-        Warning
-    }
-
     public partial class SLMessageWindow : ChildWindow
     {
         #region Constraints
@@ -68,73 +39,14 @@ namespace SLControls
         public SLMessageWindowType MessageType
         {
             get { return _messageType; }
-            set
-            {
-                _messageType = value;
-                switch (_messageType)
-                {
-                    case SLMessageWindowType.Information:
-                        imgMessageType.Source = IMAGEINFORMATION;
-                        break;
-                    case SLMessageWindowType.Error:
-                        imgMessageType.Source = IMAGEERROR;
-                        break;
-                    case SLMessageWindowType.Warning:
-                        imgMessageType.Source = IMAGEWARNING;
-                        break;
-                    default:
-                        imgMessageType.Source = IMAGEINFORMATION;
-                        break;
-                }
-            }
+            set { SetMessageType(value); }
         }
 
         private SLMessageWindowButton _buttons;
         public SLMessageWindowButton Buttons
         {
             get { return _buttons; }
-            set
-            {
-                _buttons = value;
-                OKButton.Visibility = Visibility.Collapsed;
-                CancelButton.Visibility = Visibility.Collapsed;
-                AbortButton.Visibility = Visibility.Collapsed;
-                RetryButton.Visibility = Visibility.Collapsed;
-                IgnoreButton.Visibility = Visibility.Collapsed;
-                YesButton.Visibility = Visibility.Collapsed;
-                NoButton.Visibility = Visibility.Collapsed;
-                switch (_buttons)
-                {
-                    case SLMessageWindowButton.OK:
-                        OKButton.Visibility = Visibility.Visible;
-                        break;
-                    case SLMessageWindowButton.OKCancel:
-                        OKButton.Visibility = Visibility.Visible;
-                        CancelButton.Visibility = Visibility.Visible;
-                        break;
-                    case SLMessageWindowButton.AbortRetryIgnore:
-                        AbortButton.Visibility = Visibility.Visible;
-                        RetryButton.Visibility = Visibility.Visible;
-                        IgnoreButton.Visibility = Visibility.Visible;
-                        break;
-                    case SLMessageWindowButton.YesNoCancel:
-                        YesButton.Visibility = Visibility.Visible;
-                        NoButton.Visibility = Visibility.Visible;
-                        CancelButton.Visibility = Visibility.Visible;
-                        break;
-                    case SLMessageWindowButton.YesNo:
-                        YesButton.Visibility = Visibility.Visible;
-                        NoButton.Visibility = Visibility.Visible;
-                        break;
-                    case SLMessageWindowButton.RetryCancel:
-                        RetryButton.Visibility = Visibility.Visible;
-                        CancelButton.Visibility = Visibility.Visible;
-                        break;
-                    default:
-                        OKButton.Visibility = Visibility.Visible;
-                        break;
-                }
-            }
+            set { SetButtons(value); }
         }
 
         public new SLMessageWindowResult DialogResult { get; private set; } 
@@ -176,6 +88,53 @@ namespace SLControls
         {
             InitializeComponent();
 
+            InitializeEventHandlers();
+
+            this.Message = message;
+            this.MessageType = messageType;
+            this.Title = title;
+            this.DialogResult = SLMessageWindowResult.None;
+            this.Buttons = buttons;
+        }
+
+
+        #endregion
+
+        #region Public Static Methods
+        public static void Display()
+        {
+            (new SLMessageWindow() as ChildWindow).Show();
+        }
+
+        public static void Display(string message)
+        {
+            (new SLMessageWindow(message) as ChildWindow).Show();
+        }
+
+        public static void Display(string message, string title)
+        {
+            (new SLMessageWindow(message, title) as ChildWindow).Show();
+        }
+
+        public static void Display(string message, SLMessageWindowType messageType)
+        {
+            (new SLMessageWindow(message, messageType) as ChildWindow).Show();
+        }
+
+        public static void Display(string message, string title, SLMessageWindowType messageType)
+        {
+            (new SLMessageWindow(message, title, messageType) as ChildWindow).Show();
+        }
+
+        public static void Display(string message, string title, SLMessageWindowButton buttons)
+        {
+            (new SLMessageWindow(message, title,buttons) as ChildWindow).Show();
+        }
+        #endregion
+
+        #region Private Methods
+        private void InitializeEventHandlers()
+        {
             OKButton.Click += (s, e) =>
             {
                 this.DialogResult = SLMessageWindowResult.OK;
@@ -217,46 +176,71 @@ namespace SLControls
                 this.DialogResult = SLMessageWindowResult.No;
                 base.DialogResult = true;
             };
-
-            Message = message;
-            MessageType = messageType;
-            Title = title;
-            DialogResult = SLMessageWindowResult.None;
-            Buttons = buttons;
         }
 
-        #endregion
-
-        #region Public Methods
-        public static void Display()
+        private void SetMessageType(SLMessageWindowType messageType)
         {
-            (new SLMessageWindow() as ChildWindow).Show();
+            _messageType = messageType;
+            switch (_messageType)
+            {
+                case SLMessageWindowType.Information:
+                    imgMessageType.Source = IMAGEINFORMATION;
+                    break;
+                case SLMessageWindowType.Error:
+                    imgMessageType.Source = IMAGEERROR;
+                    break;
+                case SLMessageWindowType.Warning:
+                    imgMessageType.Source = IMAGEWARNING;
+                    break;
+                default:
+                    imgMessageType.Source = IMAGEINFORMATION;
+                    break;
+            }
         }
 
-        public static void Display(string message)
+        private void SetButtons(SLMessageWindowButton buttonOption)
         {
-            (new SLMessageWindow(message) as ChildWindow).Show();
-        }
+            _buttons = buttonOption;
+            OKButton.Visibility = Visibility.Collapsed;
+            CancelButton.Visibility = Visibility.Collapsed;
+            AbortButton.Visibility = Visibility.Collapsed;
+            RetryButton.Visibility = Visibility.Collapsed;
+            IgnoreButton.Visibility = Visibility.Collapsed;
+            YesButton.Visibility = Visibility.Collapsed;
+            NoButton.Visibility = Visibility.Collapsed;
 
-        public static void Display(string message, string title)
-        {
-            (new SLMessageWindow(message, title) as ChildWindow).Show();
-        }
-
-        public static void Display(string message, SLMessageWindowType messageType)
-        {
-            (new SLMessageWindow(message, messageType) as ChildWindow).Show();
-        }
-
-        public static void Display(string message, string title, SLMessageWindowType messageType)
-        {
-            (new SLMessageWindow(message, title, messageType) as ChildWindow).Show();
-        }
-
-        public static void Display(string message, string title, SLMessageWindowButton buttons)
-        {
-            (new SLMessageWindow(message, title,buttons) as ChildWindow).Show();
-        }
+            switch (_buttons)
+            {
+                case SLMessageWindowButton.OK:
+                    OKButton.Visibility = Visibility.Visible;
+                    break;
+                case SLMessageWindowButton.OKCancel:
+                    OKButton.Visibility = Visibility.Visible;
+                    CancelButton.Visibility = Visibility.Visible;
+                    break;
+                case SLMessageWindowButton.AbortRetryIgnore:
+                    AbortButton.Visibility = Visibility.Visible;
+                    RetryButton.Visibility = Visibility.Visible;
+                    IgnoreButton.Visibility = Visibility.Visible;
+                    break;
+                case SLMessageWindowButton.YesNoCancel:
+                    YesButton.Visibility = Visibility.Visible;
+                    NoButton.Visibility = Visibility.Visible;
+                    CancelButton.Visibility = Visibility.Visible;
+                    break;
+                case SLMessageWindowButton.YesNo:
+                    YesButton.Visibility = Visibility.Visible;
+                    NoButton.Visibility = Visibility.Visible;
+                    break;
+                case SLMessageWindowButton.RetryCancel:
+                    RetryButton.Visibility = Visibility.Visible;
+                    CancelButton.Visibility = Visibility.Visible;
+                    break;
+                default:
+                    OKButton.Visibility = Visibility.Visible;
+                    break;
+            }
+        } 
         #endregion
     }
 }

@@ -14,26 +14,6 @@ using System.Windows.Threading;
 
 namespace SLControls
 {
-    enum ResizeMode
-    {
-        None,
-        Left,
-        Right,
-        Top,
-        Bottom,
-        LeftTop,
-        RightTop,
-        LeftBottom,
-        RightBottom
-    }
-
-    public enum SLWindowState
-    {
-        Normal,
-        Maximized,
-        Minimized
-    }
-
     [TemplatePart(Name = SLWindow.ResizeRight, Type = typeof(FrameworkElement))]
     [TemplatePart(Name = SLWindow.ResizeLeft, Type = typeof(FrameworkElement))]
     [TemplatePart(Name = SLWindow.ResizeBottom, Type = typeof(FrameworkElement))]
@@ -64,13 +44,17 @@ namespace SLControls
         private const string MinimizedState = "Minimized";
         private const string TitleBarContent = "TitleBarContent";
 
+        //TODO: Get Durations From VisualStates Directly.
+        private readonly TimeSpan CloseAnimDuration = TimeSpan.FromMilliseconds(400);
+        private readonly TimeSpan ShowAnimDuration = TimeSpan.FromMilliseconds(300);
+
         #endregion
 
         #region Visual Elements
 
         private FrameworkElement _resizeLeft;
         private FrameworkElement _resizeRight;
-        private FrameworkElement _resizeBottom;
+        private FrameworkElement _resizeBotton;
         private FrameworkElement _mainBorder;
         private TextBlock _title;
         private FrameworkElement _closeButton;
@@ -83,6 +67,7 @@ namespace SLControls
         #region Static Members
 
         private static int _maxZIndex = 0;
+        //TODO: Solve Known Issue => After closing minimized window, relocate minimized windows.
         private static int _minimizedWindowCount = 0;
 
         #endregion
@@ -96,7 +81,7 @@ namespace SLControls
         private Point _mouseMoveCurrentPosition;
 
         //Resize variables
-        private ResizeMode _resizeMode = ResizeMode.None;
+        private SLWindowResizeMode _resizeMode = SLWindowResizeMode.None;
         private double _resizeStartWidth;
         private double _resizeStartHeight;
         private Point _windowResizeStartPosition;
@@ -131,65 +116,16 @@ namespace SLControls
             get { return (Panel)GetValue(RootViewProperty); }
             set { SetValue(RootViewProperty, value); }
         }
+
         public static readonly DependencyProperty RootViewProperty =
             DependencyProperty.Register("RootView", typeof(Panel), typeof(SLWindow), null);
 
         public SLWindowState WindowState
         {
             get { return (SLWindowState)GetValue(WindowStateProperty); }
-            set 
-            {
-                SLWindowState currentState = WindowState;
-                if (currentState != value)
-                {
-                    SetValue(WindowStateProperty, value);
-                    if (currentState == SLWindowState.Normal)
-                    {
-                        _memorizedPosition.X = (this.RenderTransform as TranslateTransform).X;
-                        _memorizedPosition.Y = (this.RenderTransform as TranslateTransform).Y;
-                        _memorizedWidth = this.Width;
-                        _memorizedHeight = this.Height;
-                    }
-                    switch (value)
-                    {
-                        case SLWindowState.Normal:
-                            if (currentState == SLWindowState.Minimized)
-                                _minimizedWindowCount--;
-                            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
-                            VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
-                            (this.RenderTransform as TranslateTransform).X = _memorizedPosition.X;
-                            (this.RenderTransform as TranslateTransform).Y = _memorizedPosition.Y;
-                            this.Width = _memorizedWidth;
-                            this.Height = _memorizedHeight;
-                            break;
-                        case SLWindowState.Maximized:
-                            if (currentState == SLWindowState.Minimized)
-                                _minimizedWindowCount--;
-                            this.Width = double.NaN;
-                            this.Height = double.NaN;
-                            this.RenderTransform = new TranslateTransform();
-                            VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
-                            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
-                            break;
-                        case SLWindowState.Minimized:
-                            this.Width = MinWidth;
-                            this.Height = 38;
-                            HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-                            VerticalAlignment = System.Windows.VerticalAlignment.Bottom;
-                            this.RenderTransform = new TranslateTransform();
-                            (this.RenderTransform as TranslateTransform).X = MinWidth * _minimizedWindowCount + _minimizedWindowCount * 3;
-                            _minimizedWindowCount++;
-                            break;
-                        default:
-                            break;
-                    }
-                    if (WindowStateChanged != null)
-                    {
-                        WindowStateChanged(this, new EventArgs());
-                    }
-                }
-            }
+            set { ChangeWindowState(value); }
         }
+
         public static readonly DependencyProperty WindowStateProperty =
             DependencyProperty.Register("WindowState", typeof(SLWindowState), typeof(SLWindow), new PropertyMetadata(SLWindowState.Normal));
 
@@ -199,7 +135,7 @@ namespace SLControls
             set { SetValue(IsResizableProperty, value); }
         }
         public static readonly DependencyProperty IsResizableProperty =
-            DependencyProperty.Register("IsResizable", typeof(bool), typeof(SLWindow), new PropertyMetadata(true));
+            DependencyProperty.Register("IsResizable", typeof(bool), typeof(SLWindow), new PropertyMetadata(true, IsResizablePropertyChanged));
 
         public bool IsMaximizable
         {
@@ -219,10 +155,6 @@ namespace SLControls
 
         #endregion
 
-        #region Storyboards
-
-        #endregion
-
         #region Events
 
         public event EventHandler Shown;
@@ -236,16 +168,12 @@ namespace SLControls
         public SLWindow()
         {
             this.DefaultStyleKey = typeof(SLWindow);
-            RootView = new Grid();
+            this.RootView = new Grid();
             this.Width = 640;
             this.Height = 480;
             this.MinWidth = 175;
             this.MinHeight = 38;
         }
-        #endregion
-
-        #region Static Methods
-
         #endregion
 
         #region Methods
@@ -256,13 +184,12 @@ namespace SLControls
             this.TemplateApplied += (s, e) => { VisualStateManager.GoToState(this,OpenState,false); };
             this.Focus();
             DispatcherTimer dT = new DispatcherTimer();
-            dT.Interval = new TimeSpan(0, 0, 0, 0, 300);
+            dT.Interval = ShowAnimDuration;
             dT.Tick += (s, e) =>
             {
                 if (Shown != null)
-                {
                     Shown(this, new EventArgs());
-                }
+                
                 dT.Stop();
             };
             dT.Start();
@@ -275,13 +202,12 @@ namespace SLControls
 
             VisualStateManager.GoToState(this, ClosedState, false);
             DispatcherTimer dT = new DispatcherTimer();
-            dT.Interval = new TimeSpan(0,0,0,0,400);
+            dT.Interval = CloseAnimDuration;
             dT.Tick += (s, e) => 
             {
                 if (Closed != null)
-                {
                     Closed(this, new EventArgs());
-                }
+                
                 RootView.Children.Remove(this);
                 dT.Stop();
             };
@@ -291,21 +217,13 @@ namespace SLControls
         public void BringFront()
         {
             if (Canvas.GetZIndex(this) < _maxZIndex)
-            {
                 Canvas.SetZIndex(this, ++_maxZIndex);
-            }
         }
 
         private void DragMove()
         {
             if (_isMouseDown && WindowState == SLWindowState.Normal)
             {
-                //if (WindowState == SLWindowState.Maximized)
-                //{
-                //    WindowState = SLWindowState.Normal;
-                //    VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                //    HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
-                //}
                 double distanceX = _mouseMoveCurrentPosition.X - _mouseMoveStartPosition.X;
                 double distanceY = _mouseMoveCurrentPosition.Y - _mouseMoveStartPosition.Y;
 
@@ -319,7 +237,7 @@ namespace SLControls
             if (WindowState == SLWindowState.Minimized || WindowState == SLWindowState.Maximized)
                 return;
 
-            if (IsResizable && _resizeMode != ResizeMode.None)
+            if (IsResizable && _resizeMode != SLWindowResizeMode.None)
             {
                 if (VerticalAlignment == System.Windows.VerticalAlignment.Top && HorizontalAlignment == System.Windows.HorizontalAlignment.Right)
                 {
@@ -331,90 +249,139 @@ namespace SLControls
                 double amountHeight = _mouseResizeCurrentPosition.Y - _mouseResizeStartPosition.Y;
                 switch (_resizeMode)
                 {
-                    case ResizeMode.Left:
-                    case ResizeMode.LeftTop:
-                    case ResizeMode.LeftBottom:
+                    case SLWindowResizeMode.Left:
+                    case SLWindowResizeMode.LeftTop:
+                    case SLWindowResizeMode.LeftBottom:
                         Width = _resizeStartWidth - amountWidth > 0 ? _resizeStartWidth - amountWidth : 0;
+
                         if (this.MinWidth <= this.Width)
-                        {
                             (this.RenderTransform as TranslateTransform).X = _windowResizeStartPosition.X + amountWidth / 2;
-                        }
+                        
                         else
                             this.Width = this.MinWidth;
-                        if (_resizeMode == ResizeMode.LeftBottom || _resizeMode == ResizeMode.LeftTop)
+
+                        if (_resizeMode == SLWindowResizeMode.LeftBottom || _resizeMode == SLWindowResizeMode.LeftTop)
                             Height = _resizeStartHeight + amountHeight;
+
                         break;
-                    case ResizeMode.Right:
-                    case ResizeMode.RightBottom:
-                    case ResizeMode.RightTop:
+
+                    case SLWindowResizeMode.Right:
+                    case SLWindowResizeMode.RightBottom:
+                    case SLWindowResizeMode.RightTop:
                         Width = _resizeStartWidth + amountWidth > 0 ? _resizeStartWidth + amountWidth : 0;
+
                         if (this.MinWidth <= this.Width)
-                        {
                             (this.RenderTransform as TranslateTransform).X = _windowResizeStartPosition.X + amountWidth / 2;                            
-                        }
+                        
                         else
                             this.Width = this.MinWidth;
-                        if (_resizeMode == ResizeMode.RightBottom || _resizeMode == ResizeMode.RightTop)
+
+                        if (_resizeMode == SLWindowResizeMode.RightBottom || _resizeMode == SLWindowResizeMode.RightTop)
                             Height = _resizeStartHeight + amountHeight;
+
                         break;
-                    case ResizeMode.Top:
-                    case ResizeMode.Bottom:
+
+                    case SLWindowResizeMode.Top:
+                    case SLWindowResizeMode.Bottom:
                         Height = _resizeStartHeight + amountHeight > 0 ? _resizeStartHeight + amountHeight : 0;
+
                         if (this.MinHeight <= this.Height)
-                        {
                             (this.RenderTransform as TranslateTransform).Y = _windowResizeStartPosition.Y + amountHeight / 2;
-                        }
+                        
                         else
                             this.Height = this.MinHeight;
+
                         break;
                 }
             }
         }
-        #endregion
 
-        #region Overrides
-
-        public override void OnApplyTemplate()
+        private void ChangeWindowState(SLWindowState state)
         {
-            base.OnApplyTemplate();
-
-            this.RenderTransform = new TranslateTransform();
-            Canvas.SetZIndex(this, ++_maxZIndex);
-
-            this.MouseLeftButtonDown += (s, e) => { BringFront(); };
-            if (Content != null)
+            SLWindowState currentState = WindowState;
+            if (currentState != state)
             {
-                (this.Content as FrameworkElement).MouseLeftButtonDown += (s, e) => { BringFront(); };
-            }
+                SetValue(WindowStateProperty, state);
+                if (currentState == SLWindowState.Normal)
+                {
+                    _memorizedPosition.X = (this.RenderTransform as TranslateTransform).X;
+                    _memorizedPosition.Y = (this.RenderTransform as TranslateTransform).Y;
+                    _memorizedWidth = this.Width;
+                    _memorizedHeight = this.Height;
+                }
+                switch (state)
+                {
+                    case SLWindowState.Normal:
+                        if (currentState == SLWindowState.Minimized)
+                            _minimizedWindowCount--;
 
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+                        (this.RenderTransform as TranslateTransform).X = _memorizedPosition.X;
+                        (this.RenderTransform as TranslateTransform).Y = _memorizedPosition.Y;
+                        this.Width = _memorizedWidth;
+                        this.Height = _memorizedHeight;
+                        break;
+
+                    case SLWindowState.Maximized:
+                        if (currentState == SLWindowState.Minimized)
+                            _minimizedWindowCount--;
+
+                        this.Width = double.NaN;
+                        this.Height = double.NaN;
+                        this.RenderTransform = new TranslateTransform();
+                        VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+                        break;
+
+                    case SLWindowState.Minimized:
+                        this.Width = MinWidth;
+                        this.Height = 38;
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        VerticalAlignment = System.Windows.VerticalAlignment.Bottom;
+                        this.RenderTransform = new TranslateTransform();
+                        (this.RenderTransform as TranslateTransform).X = MinWidth * _minimizedWindowCount + _minimizedWindowCount * 3;
+                        _minimizedWindowCount++;
+                        break;
+
+                    default:
+                        break;
+                }
+
+                if (WindowStateChanged != null)
+                    WindowStateChanged(this, new EventArgs());
+            }
+        }
+
+        private void InitControls()
+        {
             _resizeLeft = GetTemplateChild(ResizeLeft) as FrameworkElement;
             _resizeRight = GetTemplateChild(ResizeRight) as FrameworkElement;
-            _resizeBottom = GetTemplateChild(ResizeBottom) as FrameworkElement;
+            _resizeBotton = GetTemplateChild(ResizeBottom) as FrameworkElement;
             _mainBorder = GetTemplateChild(MainBorder) as FrameworkElement;
             _title = GetTemplateChild(TitleContent) as TextBlock;
             _closeButton = GetTemplateChild(CloseButton) as FrameworkElement;
             _maximizeButton = GetTemplateChild(MaximizeButton) as FrameworkElement;
             _minimizeButton = GetTemplateChild(MinimizeButton) as FrameworkElement;
             _titleBar = GetTemplateChild(TitleBarContent) as FrameworkElement;
+        }
 
-            //WindowBar Buttons Visiblities
-            if (!IsMaximizable)
-            {
-                _maximizeButton.Visibility = System.Windows.Visibility.Collapsed;
-            }
-            if (!IsMinimizable)
-            {
-                _minimizeButton.Visibility = System.Windows.Visibility.Collapsed;
-            }
+        private void InitEventHandlers()
+        {
+            //Bring Front On Click Events
+            this.MouseLeftButtonDown += (s, e) => { BringFront(); };
+
+            if (this.Content != null)
+                (this.Content as FrameworkElement).MouseLeftButtonDown += (s, e) => { BringFront(); };
 
             //Window Resize Events
             if (IsResizable)
             {
-                MouseEventHandler mouseLeave = (s, e) => { _resizeMode = ResizeMode.None; };
-                MouseButtonEventHandler mouseUp = (s, e) => { _resizeMode = ResizeMode.None; };
+                MouseEventHandler mouseLeave = (s, e) => { _resizeMode = SLWindowResizeMode.None; };
+                MouseButtonEventHandler mouseUp = (s, e) => { _resizeMode = SLWindowResizeMode.None; };
                 MouseEventHandler mouseMove = (s, e) =>
                 {
-                    if (_resizeMode != ResizeMode.None)
+                    if (_resizeMode != SLWindowResizeMode.None)
                     {
                         _mouseResizeCurrentPosition = e.GetPosition(null);
                         Resize();
@@ -433,25 +400,23 @@ namespace SLControls
                     _resizeStartWidth = this.Width;
                     if (sender == _resizeRight)
                     {
-                        _resizeMode = ResizeMode.Right;
+                        _resizeMode = SLWindowResizeMode.Right;
                     }
                     else if (sender == _resizeLeft)
                     {
-                        _resizeMode = ResizeMode.Left;
+                        _resizeMode = SLWindowResizeMode.Left;
                     }
-                    else if (sender == _resizeBottom)
+                    else if (sender == _resizeBotton)
                     {
-                        _resizeMode = ResizeMode.Bottom;
+                        _resizeMode = SLWindowResizeMode.Bottom;
                     }
                 };
 
                 _resizeRight.MouseLeftButtonDown += mouseDown;
                 _resizeLeft.MouseLeftButtonDown += mouseDown;
-                _resizeBottom.MouseLeftButtonDown += mouseDown;
+                _resizeBotton.MouseLeftButtonDown += mouseDown;
 
                 this.MouseLeftButtonUp += mouseUp;
-                //_resizeLeft.MouseLeftButtonUp += mouseUp;
-                //_resizeBottom.MouseLeftButtonUp += mouseUp;
 
                 RootView.MouseMove += mouseMove;
                 RootView.MouseMove += mouseMove;
@@ -459,13 +424,13 @@ namespace SLControls
             }
             else
             {
-                _resizeLeft.Cursor = _resizeRight.Cursor = _resizeBottom.Cursor = Cursors.Arrow;
+                _resizeLeft.Cursor = _resizeRight.Cursor = _resizeBotton.Cursor = Cursors.Arrow;
             }
 
-            //Window Button Events
+            //Window Bar Button Events
             _closeButton.MouseLeftButtonUp += (s, e) => { Close(); };
             _minimizeButton.MouseLeftButtonUp += (s, e) => { WindowState = SLWindowState.Minimized; };
-            _maximizeButton.MouseLeftButtonUp += (s, e) => 
+            _maximizeButton.MouseLeftButtonUp += (s, e) =>
             {
                 if (WindowState == SLWindowState.Normal)
                     WindowState = SLWindowState.Maximized;
@@ -475,9 +440,9 @@ namespace SLControls
 
             _title.Text = Title;
 
-            //Mouse Drag-Move
+            //Mouse Drag-Move Events
             RootView.MouseMove += (s, e) => { _mouseMoveCurrentPosition = e.GetPosition(null); DragMove(); };
-            _titleBar.MouseLeftButtonDown += (s, e) => 
+            _titleBar.MouseLeftButtonDown += (s, e) =>
             {
                 _windowMoveStartPosition = new Point()
                 {
@@ -494,8 +459,30 @@ namespace SLControls
             //TemplateApplied Event
             if (TemplateApplied != null)
             {
-                TemplateApplied(this,new EventArgs());
+                TemplateApplied(this, new EventArgs());
             }
+        }
+
+        #endregion
+
+        #region Overriden Methods
+
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+
+            this.RenderTransform = new TranslateTransform();
+            Canvas.SetZIndex(this, ++_maxZIndex);
+
+            InitControls();
+            InitEventHandlers();
+
+            if (!IsMaximizable)
+                _maximizeButton.Visibility = System.Windows.Visibility.Collapsed;
+
+            if (!IsMinimizable)
+                _minimizeButton.Visibility = System.Windows.Visibility.Collapsed;
+
         }
 
         #endregion
@@ -525,6 +512,24 @@ namespace SLControls
             if (slWindow._minimizeButton != null)
             {
                 slWindow._minimizeButton.Visibility = value ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+            }
+        }
+        private static void IsResizablePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SLWindow slWindow = d as SLWindow;
+            bool value = (bool)e.NewValue;
+            if (slWindow._resizeBotton != null)
+            {
+                slWindow._resizeBotton.Visibility = value ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                if (value)
+                {
+                    slWindow._resizeLeft.Cursor = slWindow._resizeRight.Cursor =  Cursors.SizeWE;
+                    slWindow._resizeBotton.Cursor = Cursors.SizeNS;
+                }
+                else
+                {
+                    slWindow._resizeLeft.Cursor = slWindow._resizeRight.Cursor = slWindow._resizeBotton.Cursor = Cursors.Arrow;
+                }
             }
         }
         #endregion

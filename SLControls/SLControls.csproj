@@ -65,6 +65,7 @@
     <Reference Include="System.Windows.Browser" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enums.cs" />
     <Compile Include="SLMessageWindow.xaml.cs">
       <DependentUpon>SLMessageWindow.xaml</DependentUpon>
     </Compile>
